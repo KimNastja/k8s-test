@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment              #тип ресурса деплоймент
+metadata:
+  name: nginx
+  labels:                     #лейблы которые нужны для стыковки с сервисом
+    app: nginx
+  namespace: default
+  annotations:                #это метаданные с дополнительной информацией, связанной с ресурсом или объектом. Аннотации состоят из пар ключ-значение. Каждая пара используется для описания метаданных ресурса или предоставления дополнительной информации
+    monitoring: "true"
+spec:
+  replicas: 1                 #количество реплик пода
+  selector:
+    matchLabels:              #определяет с какими лейблами стыковаться
+      app: nginx
+  template:                   #описывает шаблон создаваемого пода
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:             #характеристики создаваемого пода
+      - image: nginx
+        name: nginx
+        ports:
+        - containerPort: 80
+        resources:            
+          limits:              #максимум ресурсов, выделяемых контейнеру
+            memory: "2Gi"
+            cpu: "1000m"
+          requests:           #минимальное количество ресурсов необходимых для создания пода
+            memory: "1Gi"
+            cpu: "500m"
