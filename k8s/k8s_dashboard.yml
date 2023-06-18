@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Создаём неймспейс для всех ресурсов дэшборда 
+# 
 
 apiVersion: v1
 kind: Namespace
@@ -18,7 +21,7 @@ metadata:
   name: kubernetes-dashboard
 
 ---
-
+# Создаём сервис-аккаунт
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -28,7 +31,7 @@ metadata:
   namespace: kubernetes-dashboard
 
 ---
-
+# Создаём сервис с лейблами и нодпортом
 kind: Service
 apiVersion: v1
 metadata:
@@ -42,11 +45,12 @@ spec:
   ports:
     - port: 443
       targetPort: 8443
+      nodePort: 30005  # Укажем конкретный нодпорт
   selector:
     k8s-app: kubernetes-dashboard
 
 ---
-
+# Создаём файлы с секретами
 apiVersion: v1
 kind: Secret
 metadata:
@@ -81,7 +85,7 @@ metadata:
 type: Opaque
 
 ---
-
+# Создаём конфигмапу для хранения настроек
 kind: ConfigMap
 apiVersion: v1
 metadata:
@@ -91,7 +95,7 @@ metadata:
   namespace: kubernetes-dashboard
 
 ---
-
+# Создаём роль, которая имеет доступ к ресурсам куба
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -121,7 +125,7 @@ rules:
     verbs: ["get"]
 
 ---
-
+# Создаётся кластер роль, позволяющая собирать метрики
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -135,7 +139,7 @@ rules:
     verbs: ["get", "list", "watch"]
 
 ---
-
+# Сервис аккаунт связывается с ролью дэшборда
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -153,7 +157,7 @@ subjects:
     namespace: kubernetes-dashboard
 
 ---
-
+# Сервис аккаунт связывается с кластерной ролью
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -168,7 +172,7 @@ subjects:
     namespace: kubernetes-dashboard
 
 ---
-
+# Описание деплоймента дэшборда
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -192,52 +196,52 @@ spec:
           type: RuntimeDefault
       containers:
         - name: kubernetes-dashboard
-          image: kubernetesui/dashboard:v2.7.0
+          image: kubernetesui/dashboard:v2.7.0   # Задаётся имейдж
           imagePullPolicy: Always
           ports:
             - containerPort: 8443
               protocol: TCP
           args:
-            - --auto-generate-certificates
+            - --auto-generate-certificates   # Передаются аргументы запуска
             - --namespace=kubernetes-dashboard
             # Uncomment the following line to manually specify Kubernetes API server Host
             # If not specified, Dashboard will attempt to auto discover the API server and connect
             # to it. Uncomment only if the default does not work.
             # - --apiserver-host=http://my-address:port
-          volumeMounts:
+          volumeMounts:   # Описываются папки, которые монтируются внутрь пода
             - name: kubernetes-dashboard-certs
               mountPath: /certs
               # Create on-disk volume to store exec logs
             - mountPath: /tmp
               name: tmp-volume
-          livenessProbe:
+          livenessProbe:  # Проба, которая позволяет понять живое ли приложение
             httpGet:
               scheme: HTTPS
               path: /
               port: 8443
             initialDelaySeconds: 30
             timeoutSeconds: 30
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            runAsUser: 1001
-            runAsGroup: 2001
-      volumes:
+          securityContext:    # Определяет настройки запуска пода по секьюрити
+            allowPrivilegeEscalation: false  # Запрещает судо
+            readOnlyRootFilesystem: true   # Не позволяет изменять файлы на диске
+            runAsUser: 1001      # Определяет айди юзера
+            runAsGroup: 2001     # Определяет группу
+      volumes:                    # Описывает откуда подключаются файлы в вольюмы
         - name: kubernetes-dashboard-certs
           secret:
             secretName: kubernetes-dashboard-certs
         - name: tmp-volume
           emptyDir: {}
-      serviceAccountName: kubernetes-dashboard
-      nodeSelector:
+      serviceAccountName: kubernetes-dashboard   # Определяется сервис аккаунт от которого запускается под
+      nodeSelector:          # Определяет лейбл ноды на которой запускается
         "kubernetes.io/os": linux
       # Comment the following tolerations if Dashboard must not be deployed on master
-      tolerations:
+      tolerations:        # Определяет условия при которых под не будет деплоиться на ноде
         - key: node-role.kubernetes.io/master
           effect: NoSchedule
 
 ---
-
+# Позволяет собирать метрики
 kind: Service
 apiVersion: v1
 metadata:
