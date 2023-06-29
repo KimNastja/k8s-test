@@ -1,17 +1,24 @@
-apiVersion: rbac.authorization.k8s.io/v1    #версия апи куба
-kind: ClusterRoleBinding                    #тип ресурса
-metadata:
-  name: kubernetes-dashboard                #название 
-  namespace: kubernetes-dashboard           #неймспейс
-  labels:
-    k8s-app: kubernetes-dashboard           #лейбл > чтобы ресурсы нашли друг друга
-roleRef:                                    #определние роли
-  apiGroup: rbac.authorization.k8s.io       #апи группа
-  kind: ClusterRole                         #тип ресурса кластер роль
-  name: cluster-admin
-subjects:                                   #к какому субъекту применяется роль
-- kind: ServiceAccount
-  name: kubernetes-dashboard
-  namespace: kube-system
+# Создаём сервис аккаунт, чтобы дать ему права на весь кластер
+# Не продакшен реди решение, для тестов
 
+
+kind: ServiceAccount                           
+apiVersion: v1
+metadata:
+  name: cluster-admin-dashboard-sa
+  namespace: default
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cluster-admin-dashboard-sa
+subjects:
+  - kind: ServiceAccount
+    name: cluster-admin-dashboard-sa
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
   
